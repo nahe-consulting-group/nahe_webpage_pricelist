@@ -1,0 +1,123 @@
+<odoo>
+  <data>
+<!-- Este record genera el menu dentro del website y la URL a la que dirige-->
+    <record id="menu_nahe_webpage_pricelist" model="website.menu">
+        <field name="name">Lista</field>
+        <field name="url">/lista</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence">55</field>
+    </record>
+
+    <!-- este template genera la pagina con la tabla a la que se accede con el menu de arriba-->
+    <template id="webpage_pricelist" name="Listado de Productos">
+        <t t-call="website.layout">
+                    <div id="wrap">
+                    <section class="s_heading_1 pb0 pt0" data-name="Heading - 1">
+                        <div class="container">
+                          <div class="row s_nb_column_fixed s_col_no_bgcolor">
+                            <div class="col-12 heading-container text-center line-thickness-normal line-width-normal line-bottom pb0">
+                              <h2>Listado de Precios:</h2>
+                              <p class="lead mb-0">Puede ver todos nuestros productos con sus precios en pesos y dolares.</p>
+                              <p class="lead mb-0">Recuerde que los productos sin stock puede no estar actualizado el precio.</p>
+                              <p class="lead mb-0">Desde la tienda puede hacer los pedidos.</p>
+                            <form class="form-inline mb-4" role="form" t-attf-action="/lista" method="get">
+                                <div class="form-group">
+                                    <input type="text" class="form-control" name="search" placeholder="Buscar producto" t-att-value="search or ''"/>
+                                </div>
+                                <button type="submit" class="btn btn-primary ml-2">Buscar</button>
+                            </form>
+                            </div>
+                          </div>
+                        </div>
+                    </section>
+                <div class="oe_structure">
+                    <div class="container">
+                        <!--METER ACA LA TABLA -->
+                        <table class="table table-condensed" name="products_line_table">
+                        <thead >
+                            <tr>
+                                <th>PRODUCTO</th>
+                                <th>PRECIO BASE</th>
+                                <th>PRECIO EFECTIVO</th>
+                                <th>PRECIO EFECTIVO USD</th>
+                                <t t-if="request.env.user.id != request.website.user_id.id and user_id.partner_id.property_product_pricelist.id ==3">
+                                    <th>PRECIO MAYORISTA</th>
+                                    <th>PRECIO MAYORISTA USD</th>
+                                </t>
+                                <th>STOCK</th>
+                                <th>LINK TIENDA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                              <t t-foreach="productos" t-as="prod">
+                                <t t-set="combination" t-value="prod._get_first_possible_combination()"/>
+                                <tr>
+                                    <td t-esc="prod.name" scope="col" style="text-align: left; height:10px;">
+                                    </td>
+                                    <t t-if="prod.seller_ids">
+                                        <td t-esc="int(round(prod._get_combination_info(combination, add_qty=1, pricelist=prod.pricelist_id.browse(2))['price']))" scope="col" style="text-align: left; height:10px;" t-options="{'widget': 'monetary', 'display_currency': website.currency_id}"/>
+                                        <td t-esc="prod._get_combination_info(combination, add_qty=1, pricelist=prod.pricelist_id.browse(1))['price']" scope="col" style="text-align: left; height:10px;" t-options="{'widget': 'monetary', 'display_currency': website.currency_id}">
+                                        </td>
+                                        <td t-esc="prod._get_combination_info(combination, add_qty=1, pricelist=prod.pricelist_id.browse(4))['price']" scope="col" style="text-align: left; height:10px;" t-options="{'widget': 'monetary', 'display_currency': website.currency_id}">
+                                        </td>
+                                        <t t-if="user_id.partner_id.property_product_pricelist.id ==3">
+                                            <td t-esc="prod._get_combination_info(combination, add_qty=1, pricelist=prod.pricelist_id.browse(3))['price']" scope="col" style="text-align: left; height:10px;" t-options="{'widget': 'monetary', 'display_currency': website.currency_id}">
+                                            </td>
+                                            <td t-esc="prod._get_combination_info(combination, add_qty=1, pricelist=prod.pricelist_id.browse(5))['price']" scope="col" style="text-align: left; height:10px;" t-options="{'widget': 'monetary', 'display_currency': website.currency_id}">
+                                            </td>
+                                        </t>
+                                    </t>
+                                    <t t-else="">
+                                        <td scope="col" style="text-align: left; height:10px;">Sin Stock</td>
+                                        <td scope="col" style="text-align: left; height:10px;">Sin Stock</td>
+                                        <td scope="col" style="text-align: left; height:10px;">Sin Stock</td>
+                                        <t t-if="user_id.partner_id.property_product_pricelist.id ==3">
+                                            <td scope="col" style="text-align: left; height:10px;">Sin Stock</td>
+                                            <td scope="col" style="text-align: left; height:10px;">Sin Stock</td>
+                                        </t>
+                                    </t>
+                                    <t t-if="prod.seller_ids">
+                                        <t t-if='prod.seller_ids[0].supplier_stock and prod.virtual_available &lt;= 0' >
+                                            <td scope="col" style="text-align: left; height:10px;">En stock
+                                            </td>
+                                        </t>
+                                        <t t-if="not prod.seller_ids[0].supplier_stock and prod.virtual_available &lt;= 0">
+                                            <td scope="col" style="text-align: left; height:10px;">A pedido
+                                            </td>
+                                        </t>
+                                        <t t-if="prod.virtual_available > 0">
+                                            <td scope="col" style="text-align: left; height:10px;">En stock
+                                            </td>
+                                        </t>
+                                    </t>
+                                    <t t-if="not prod.seller_ids and prod.virtual_available &lt;= 0">
+                                        <td scope="col" style="text-align: left; height:10px;">Sin stock
+                                        </td>
+                                    </t>
+                                    <td><a t-attf-href="{{prod.website_url}}" target="_blank">Ver en tienda</a></td>
+                                    <!--<td><a t-esc="'Pedir en tienda'" t-att-href="prod.website_url" t-options="{'widget':'url'}"/></td>-->
+                                </tr>
+                              </t>
+                        </tbody>
+                    </table>
+                    <!-- Navegación de paginación -->
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                <li t-att-class="'page-item' if page > 1 else 'page-item disabled'">
+                                    <a t-attf-href="/lista?page={{page - 1}}" class="page-link">Anterior</a>
+                                </li>
+                                <li t-att-class="'page-item' if totalPages >= page else 'page-item disabled'" t-foreach="range(1, totalPages+1)" t-as="p">
+                                    <a t-attf-href="/lista?page={{p}}" class="page-link" t-esc="p"></a>
+                                </li>
+                                <li t-att-class="'page-item' if totalPages > page else 'page-item disabled'">
+                                    <a t-attf-href="/lista?page={{page + 1}}" class="page-link">Siguiente</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+  </data>
+</odoo>
